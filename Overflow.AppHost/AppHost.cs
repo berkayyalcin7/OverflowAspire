@@ -39,19 +39,30 @@ var typesenseContainer = typesense.GetEndpoint("typesense");
 
 var questionDb = postgres.AddDatabase("questionDb");
 
+// RabbitMQ Container
+var rabbitMq  = builder.AddRabbitMQ("rabbitmq")
+    .WithDataVolume("rabbitmq-data")
+    .WithManagementPlugin(port:15672);
+
+
+
 // SERVICE CONFIG
 
 var questionService = builder.AddProject<Projects.QuestionService>("question-svc")
     .WithReference(keycloak)
     .WithReference(questionDb)
+    .WithReference(rabbitMq)
     .WaitFor(keycloak)
-    .WaitFor(questionDb);
+    .WaitFor(questionDb)
+    .WaitFor(rabbitMq);
 
 
 var searchService = builder.AddProject<Projects.SearchService>("search-svc")
-    .WithEnvironment("typesense-api-key",typesenseApiKey)
+    .WithEnvironment("typesense-api-key", typesenseApiKey)
     .WithReference(typesenseContainer)
-    .WaitFor(typesense);
+    .WithReference(rabbitMq)
+    .WaitFor(typesense)
+    .WaitFor(rabbitMq);
 
 
 builder.Build().Run();
