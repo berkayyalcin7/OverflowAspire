@@ -40,7 +40,7 @@ var typesenseContainer = typesense.GetEndpoint("typesense");
 var questionDb = postgres.AddDatabase("questionDb");
 
 // RabbitMQ Container
-var rabbitMq  = builder.AddRabbitMQ("rabbitmq")
+var rabbitMq  = builder.AddRabbitMQ("messaging")
     .WithDataVolume("rabbitmq-data")
     .WithManagementPlugin(port:15672);
 
@@ -52,17 +52,17 @@ var questionService = builder.AddProject<Projects.QuestionService>("question-svc
     .WithReference(keycloak)
     .WithReference(questionDb)
     .WithReference(rabbitMq)
-    .WaitFor(keycloak)
-    .WaitFor(questionDb)
-    .WaitFor(rabbitMq);
+    .WaitFor(keycloak, WaitBehavior.StopOnResourceUnavailable)  // 2 dakika timeout
+    .WaitFor(questionDb, WaitBehavior.StopOnResourceUnavailable)  // 1 dakika timeout
+    .WaitFor(rabbitMq, WaitBehavior.StopOnResourceUnavailable);  // 2 dakika timeout
 
 
 var searchService = builder.AddProject<Projects.SearchService>("search-svc")
     .WithEnvironment("typesense-api-key", typesenseApiKey)
     .WithReference(typesenseContainer)
     .WithReference(rabbitMq)
-    .WaitFor(typesense)
-    .WaitFor(rabbitMq);
+    .WaitFor(typesense, WaitBehavior.StopOnResourceUnavailable)  // 2 dakika timeout
+    .WaitFor(rabbitMq, WaitBehavior.StopOnResourceUnavailable);  // 2 dakika timeout
 
 
 builder.Build().Run();
