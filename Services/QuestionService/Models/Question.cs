@@ -33,6 +33,10 @@ namespace QuestionService.Models
 
         public int Votes { get; set; } = 0;
 
+        public int AnswerCount { get; set; } = 0;
+
+        public Answer[] Answer { get; set; } = [];
+
 
     }
 }

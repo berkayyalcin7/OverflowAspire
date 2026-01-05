@@ -88,7 +88,7 @@ namespace QuestionService.Controllers
             if (question is null) return NotFound();
 
             // o sırada veriyi çekerken belirli property üzerinde update işlemi
-            await db.Questions.Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.SetProperty(x=>x.ViewCount,x=>x.ViewCount+1));
+            await db.Questions.Include(x=>x.Answer).Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.SetProperty(x=>x.ViewCount,x=>x.ViewCount+1));
 
             return question;
           
@@ -160,6 +160,25 @@ namespace QuestionService.Controllers
             await db.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        [Authorize]
+        [HttpPost("{questionId}/answers")]
+        public async Task<IActionResult> CreateAnswer(CreateAnswerDto dto,string questionId)
+        {
+            var answer = new Answer
+            {
+                Content = dto.Content,
+                QuestionId = questionId,
+                UserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "",
+                UserDisplayName = User.FindFirstValue("name") ?? ""
+            };
+
+            db.Answers.Add(answer);
+
+            await db.SaveChangesAsync();
+
+            return Created($"/questions/{questionId}/answers", answer);
         }
 
     }
