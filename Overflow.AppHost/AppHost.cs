@@ -1,5 +1,11 @@
 ﻿var builder = DistributedApplication.CreateBuilder(args);
 
+var compose = builder.AddDockerComposeEnvironment("production")
+    .WithDashboard(dashboard =>
+    {
+        dashboard.WithHostPort(8080);
+    });
+
 var keycloak = builder.AddKeycloak("keycloak",6001)
     .WithDataVolume("keycloak-data");
 
@@ -31,7 +37,10 @@ var postgres = builder.AddPostgres("postgres", port: 5434)
 var typesenseApiKey = builder.AddParameter("typesense-api-key",secret:true);
 
 var typesense = builder.AddContainer("typesense", "typesense/typesense", "29.0")
-    .WithArgs("--data-dir", "/data", "--api-key", typesenseApiKey, "--enable-cors")
+    //.WithArgs("--data-dir", "/data", "--api-key", typesenseApiKey, "--enable-cors")
+    .WithEnvironment("TYPESENSE_DATA_DIR", "/data")
+    .WithEnvironment("TYPESENSE_ENABLE_CORS", "true")
+    .WithEnvironment("TYPESENSE_API_KEY", typesenseApiKey)
     .WithVolume("typesense-data", "/data")
     .WithHttpEndpoint(8108, 8108, name: "typesense");
 
@@ -63,6 +72,21 @@ var searchService = builder.AddProject<Projects.SearchService>("search-svc")
     .WithReference(rabbitMq)
     .WaitFor(typesense, WaitBehavior.StopOnResourceUnavailable)  // 2 dakika timeout
     .WaitFor(rabbitMq, WaitBehavior.StopOnResourceUnavailable);  // 2 dakika timeout
+
+
+// YARP Configuration
+var yarp = builder.AddYarp("gateway")
+    .WithConfiguration(yarpBuilder =>
+    {
+        yarpBuilder.AddRoute("/api/questions/{**catch-all}", questionService);
+        yarpBuilder.AddRoute("/api/tags/{**catch-all}", questionService);
+        yarpBuilder.AddRoute("/api/search/{**catch-all}", searchService);
+    })
+    .WithHostPort(8001);
+//.WithEnvironment("ASPNETCORE_URLS","http://*:8001")
+//.WithEndpoint(port:8001,targetPort:8001,scheme:"http",name:"gateway",isExternal:true);
+
+
 
 
 builder.Build().Run();

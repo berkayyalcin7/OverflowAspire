@@ -26,7 +26,5 @@ namespace QuestionService.Models
         [JsonIgnore]
         public Question Question { get; set; } = null!;
 
-
-
     }
 }

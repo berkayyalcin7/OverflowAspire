@@ -35,7 +35,7 @@ namespace QuestionService.Models
 
         public int AnswerCount { get; set; } = 0;
 
-        public Answer[] Answer { get; set; } = [];
+        public List<Answer> Answer { get; set; } = [];
 
 
     }

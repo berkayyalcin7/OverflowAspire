@@ -3,6 +3,7 @@ using FastExpressionCompiler;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
 using QuestionService.Data;
 using QuestionService.DTOs;
@@ -16,7 +17,7 @@ namespace QuestionService.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class QuestionsController(QuestionDbContext db,IMessageBus bus,TagService tagService) : ControllerBase
+    public class QuestionsController(QuestionDbContext db, IMessageBus bus, TagService tagService) : ControllerBase
     {
         [Authorize]
         [HttpPost]
@@ -32,7 +33,7 @@ namespace QuestionService.Controllers
             //    return BadRequest($"Invalid tags : {string.Join(", ", missing)}");
             //}
 
-            if(!await tagService.AreTagsValidAsync(dto.Tags))
+            if (!await tagService.AreTagsValidAsync(dto.Tags))
             {
                 return BadRequest($"Invalid tags");
             }
@@ -60,7 +61,7 @@ namespace QuestionService.Controllers
             await db.SaveChangesAsync();
 
             // Using Transaction for crash.
-            await bus.PublishAsync(new QuestionCreated(question.Id, question.Title, question.Content,question.CreatedAt,question.TagSlugs));
+            await bus.PublishAsync(new QuestionCreated(question.Id, question.Title, question.Content, question.CreatedAt, question.TagSlugs));
 
 
             return Created($"/questions/{question.Id}", question);
@@ -83,20 +84,20 @@ namespace QuestionService.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Question>> GetQuestion(string id)
         {
-            var question = await db.Questions.FindAsync(id);
+            var question = await db.Questions.Include(x=>x.Answer).FirstOrDefaultAsync(x=>x.Id==id);
 
             if (question is null) return NotFound();
 
             // o sırada veriyi çekerken belirli property üzerinde update işlemi
-            await db.Questions.Include(x=>x.Answer).Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.SetProperty(x=>x.ViewCount,x=>x.ViewCount+1));
+            await db.Questions.Where(x => x.Id == id).ExecuteUpdateAsync(setters => setters.SetProperty(x => x.ViewCount, x => x.ViewCount + 1));
 
             return question;
-          
+
         }
 
         [Authorize]
         [HttpPut("{id}")]
-        public async Task<ActionResult> UpdateQuestion(string id,CreateQuestionDto dto)
+        public async Task<ActionResult> UpdateQuestion(string id, CreateQuestionDto dto)
         {
             var question = await db.Questions.FindAsync(id);
 
@@ -104,7 +105,7 @@ namespace QuestionService.Controllers
 
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if(userId != question.AskerId)
+            if (userId != question.AskerId)
             {
                 return Forbid();
             }
@@ -129,11 +130,11 @@ namespace QuestionService.Controllers
 
             question.UpdatedAt = DateTime.UtcNow;
 
-            await db.SaveChangesAsync();    
+            await db.SaveChangesAsync();
 
-            await bus.PublishAsync(new QuestionUpdated(question.Id, 
-                question.Title, 
-                question.Content, 
+            await bus.PublishAsync(new QuestionUpdated(question.Id,
+                question.Title,
+                question.Content,
                 question.TagSlugs.AsArray()));
 
             return NoContent();
@@ -164,8 +165,19 @@ namespace QuestionService.Controllers
 
         [Authorize]
         [HttpPost("{questionId}/answers")]
-        public async Task<IActionResult> CreateAnswer(CreateAnswerDto dto,string questionId)
+        public async Task<IActionResult> CreateAnswer(CreateAnswerDto dto, string questionId)
         {
+            var question = await db.Questions.FindAsync(questionId);
+
+            var name = User.FindFirstValue("name");
+
+            if (question is null) return NotFound();
+
+            if (name is null)
+            {
+                return BadRequest("Cannot get user details");
+            }
+
             var answer = new Answer
             {
                 Content = dto.Content,
@@ -174,12 +186,122 @@ namespace QuestionService.Controllers
                 UserDisplayName = User.FindFirstValue("name") ?? ""
             };
 
-            db.Answers.Add(answer);
+            question.Answer.Add(answer);
+            question.AnswerCount++;
 
             await db.SaveChangesAsync();
 
+            await bus.PublishAsync(new AnswerCountUpdated(question.Id, question.AnswerCount));
+
             return Created($"/questions/{questionId}/answers", answer);
         }
+
+        [Authorize]
+        [HttpPut("{questionId}/answers/{answerId}")]
+        public async Task<IActionResult> UpdateAnswer(string questionId, string answerId, CreateAnswerDto dto)
+        {
+            var answer = await db.Answers.FindAsync(answerId);
+
+            if (answer is null || answer.QuestionId != questionId) return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId != answer.UserId)
+            {
+                return Forbid();
+            }
+            answer.Content = dto.Content;
+
+            answer.UpdatedAt = DateTime.UtcNow;
+
+            await db.SaveChangesAsync();
+
+            return NoContent();
+
+        }
+
+        [Authorize]
+        [HttpDelete("{questionId}/answers/{answerId}")]
+        public async Task<IActionResult> DeleteAnswer(string questionId, string answerId)
+        {
+            var answer = await db.Answers.FindAsync(answerId);
+
+            if (answer is null || answer.QuestionId != questionId) return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId != answer.UserId)
+            {
+                return Forbid();
+            }
+            var question = await db.Questions.FindAsync(questionId);
+
+            if (question is not null)
+            {
+                question.AnswerCount--;
+            }
+
+            db.Answers.Remove(answer);
+
+            await db.SaveChangesAsync();
+
+            await bus.PublishAsync(new AnswerCountUpdated(question.Id, question.AnswerCount));
+
+            return NoContent();
+
+        }
+
+        [Authorize]
+        [HttpPost("{questionId}/answers/{answerId}/accept")]
+        public async Task<IActionResult> AcceptAnswer(string questionId, string answerId)
+        {
+            var question = await db.Questions.Include(x => x.Answer).FirstOrDefaultAsync(x => x.Id == questionId);
+
+            if (question is null) return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (userId != question.AskerId)
+            {
+                return Forbid();
+            }
+            var answer = question.Answer.FirstOrDefault(x => x.Id == answerId);
+
+            if (answer is null) return NotFound();
+
+            if (answer.QuestionId != questionId || question.HasAcceptedAnswer) 
+            {
+                return BadRequest();
+            }
+
+            answer.Accepted = true;
+            question.HasAcceptedAnswer = true;
+
+            await db.SaveChangesAsync();
+
+            await bus.PublishAsync(new AnswerAccepted(question.Id));
+
+            return NoContent();
+        }
+
+        [HttpGet("errors")]
+        public ActionResult GetErrorResponses(int code)
+        {
+
+            ModelState.AddModelError("Problem one", "Validation problem one");
+            ModelState.AddModelError("Problem two", "Validation problem two");
+
+            return code switch
+            {
+                400 => BadRequest("This is a bad request example."),
+                401 => Unauthorized("This is an unauthorized example."),
+                403 => StatusCode(StatusCodes.Status403Forbidden, "This is a forbidden example."),
+                404 => NotFound("This is a not found example."),
+                500 => StatusCode(StatusCodes.Status500InternalServerError, "This is an internal server error example."),
+                _ => ValidationProblem(ModelState)
+            };
+        }
+
 
     }
 }
