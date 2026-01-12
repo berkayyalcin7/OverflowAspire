@@ -1,3 +1,4 @@
+using Common;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SearchService.Data;
@@ -17,22 +18,32 @@ builder.Services.AddOpenApi();
 builder.AddServiceDefaults();
 
 
-// OpenTelemetry Tracing
-builder.Services.AddOpenTelemetry().WithTracing(trace =>
+// New Configuration
+await builder.UseWolverineWithRabbitMqAsync(builder.Configuration, opts =>
 {
-    trace.SetResourceBuilder(ResourceBuilder.CreateDefault()
-        .AddService(builder.Environment.ApplicationName))
-        .AddSource("Wolverine");
-});
-
-builder.Host.UseWolverine(opts =>
-{
-    opts.UseRabbitMqUsingNamedConnection("messaging").AutoProvision();
     opts.ListenToRabbitQueue("questions.search", cfg =>
     {
         cfg.BindExchange("questions");
     });
+    opts.ApplicationAssembly = typeof(Program).Assembly;
 });
+
+//// OpenTelemetry Tracing
+//builder.Services.AddOpenTelemetry().WithTracing(trace =>
+//{
+//    trace.SetResourceBuilder(ResourceBuilder.CreateDefault()
+//        .AddService(builder.Environment.ApplicationName))
+//        .AddSource("Wolverine");
+//});
+
+//builder.Host.UseWolverine(opts =>
+//{
+//    opts.UseRabbitMqUsingNamedConnection("messaging").AutoProvision();
+//    opts.ListenToRabbitQueue("questions.search", cfg =>
+//    {
+//        cfg.BindExchange("questions");
+//    });
+//});
 
 var typesenseUri = builder.Configuration["services:typesense:typesense:0"];
 

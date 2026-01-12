@@ -1,6 +1,14 @@
 <Solution>
   <Folder Name="/Common/">
+    <Project Path="Common/Common/Common.csproj" Id="6154eac6-13fd-4fec-827c-716742318e30" />
     <Project Path="Common/Contracts/Contracts.csproj" Id="11601c37-dd7d-4b9c-bbde-401e1df9738f" />
+  </Folder>
+  <Folder Name="/infra/">
+    <File Path="infra/.env" />
+    <File Path="infra/docker-compose.yaml" />
+  </Folder>
+  <Folder Name="/infra/realms/">
+    <File Path="infra/realms/overflow-realm.json" />
   </Folder>
   <Folder Name="/Services/">
     <Project Path="Services/QuestionService/QuestionService.csproj" />

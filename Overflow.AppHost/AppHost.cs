@@ -1,4 +1,6 @@
-﻿var builder = DistributedApplication.CreateBuilder(args);
+﻿using Microsoft.Extensions.Hosting;
+
+var builder = DistributedApplication.CreateBuilder(args);
 
 var compose = builder.AddDockerComposeEnvironment("production")
     .WithDashboard(dashboard =>
@@ -6,12 +8,19 @@ var compose = builder.AddDockerComposeEnvironment("production")
         dashboard.WithHostPort(8080);
     });
 
-var keycloak = builder.AddKeycloak("keycloak",6001)
-    .WithDataVolume("keycloak-data");
+var keycloak = builder.AddKeycloak("keycloak", 6001)
+    .WithDataVolume("keycloak-data")
+    .WithRealmImport("../infra/realms")
+    .WithEnvironment("KC_HTTP_ENABLED", "true")
+    .WithEnvironment("KC_HOSTNAME_STRICT", "false")
+    .WithEndpoint(6001, 8080, "keycloak", isExternal: true);
+    //.WithEnvironment("VIRTUAL_HOST", "id.overflow.local")
+    //.WithEnvironment("VIRTUAL_PORT", "8080"); ;
 
 // LOCAL PC ' DE POSTRGE OLDUĞU İÇİN PORT'U 5434 OLARAK DEĞİŞTİRDİK.
 var postgres = builder.AddPostgres("postgres", port: 5434)
     .WithDataVolume("postgres-data")
+
     .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "trust")
     .WithPgAdmin(container =>
     {
@@ -80,13 +89,21 @@ var yarp = builder.AddYarp("gateway")
     {
         yarpBuilder.AddRoute("/api/questions/{**catch-all}", questionService);
         yarpBuilder.AddRoute("/api/tags/{**catch-all}", questionService);
-        yarpBuilder.AddRoute("/api/search/{**catch-all}", searchService);
+        yarpBuilder.AddRoute("search/{**catch-all}", searchService);
     })
-    .WithHostPort(8001);
-//.WithEnvironment("ASPNETCORE_URLS","http://*:8001")
-//.WithEndpoint(port:8001,targetPort:8001,scheme:"http",name:"gateway",isExternal:true);
+     .WithHostPort(8001)
+     .WithEnvironment("ASPNETCORE_URLS", "http://*:8001")  // ✅ Format düzeltildi
+     .WithEnvironment("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "true") // ✅ Forwarded headers için
+     .WithEndpoint(port: 8001, targetPort: 8001, scheme: "http", name: "gateway", isExternal: true)
+     .WithEnvironment("VIRTUAL_HOST","api.overflow.local")
+     .WithEnvironment("VIRTUAL_PORT","8001");
 
-
+if (!builder.Environment.IsDevelopment())
+{
+    builder.AddContainer("nginx-proxy", "nginxproxy/nginx-proxy", "1.8")
+        .WithEndpoint(80,80,"nginx",isExternal:true)
+        .WithBindMount("/var/run/docker.sock","/tmp/docker.sock",isReadOnly:true);
+}
 
 
 builder.Build().Run();

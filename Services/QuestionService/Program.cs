@@ -1,8 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Common;
+using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Polly;
 using QuestionService.Data;
 using QuestionService.Services;
+using RabbitMQ.Client.Exceptions;
+using System.Net.Sockets;
 using Wolverine;
 using Wolverine.RabbitMQ;
 
@@ -20,36 +24,43 @@ builder.AddServiceDefaults();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TagService>();
 
-// OpenTelemetry Tracing
-builder.Services.AddOpenTelemetry().WithTracing(trace =>
-{
-    trace.SetResourceBuilder(ResourceBuilder.CreateDefault()
-        .AddService(builder.Environment.ApplicationName))
-        .AddSource("Wolverine");
-});
 
-builder.Host.UseWolverine(opts =>
+await builder.UseWolverineWithRabbitMqAsync(builder.Configuration, opts =>
 {
-    opts.UseRabbitMqUsingNamedConnection("messaging").AutoProvision();
     opts.PublishAllMessages().ToRabbitExchange("questions");
+    opts.ApplicationAssembly = typeof(Program).Assembly;
 });
 
-// Keycloak Authentication
-builder.Services
-    .AddAuthentication()
-    .AddKeycloakJwtBearer(serviceName: "keycloak", realm: "overflow", options =>
-    {
-        options.RequireHttpsMetadata = false;
-        options.Audience = "overflow";
-        // Bunu eklemediğimizde Invalid issuer hatası alıyoruz. 
-        options.Authority = "http://keycloak:6001/realms/overflow";
-    });
+builder.Services.AddKeyCloakAuthentication();
+
+
+// OLD Config
+//builder.Host.UseWolverine(opts =>
+//{
+//    opts.UseRabbitMqUsingNamedConnection("messaging").AutoProvision();
+//    opts.PublishAllMessages().ToRabbitExchange("questions");
+//});
+
+
+
+//// Keycloak Authentication - Common'a taşındı
+//builder.Services
+//    .AddAuthentication()
+//    .AddKeycloakJwtBearer(serviceName: "keycloak", realm: "overflow", options =>
+//    {
+//        options.RequireHttpsMetadata = false;
+//        options.Audience = "overflow";
+//        // Bunu eklemediğimizde Invalid issuer hatası alıyoruz. 
+//        options.Authority = "http://keycloak:6001/realms/overflow";
+//    });
 
 builder.AddNpgsqlDbContext<QuestionDbContext>("questionDb");
 
 
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

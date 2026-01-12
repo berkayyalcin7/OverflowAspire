@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace QuestionService.Models
@@ -35,7 +36,8 @@ namespace QuestionService.Models
 
         public int AnswerCount { get; set; } = 0;
 
-        public List<Answer> Answer { get; set; } = [];
+        [JsonPropertyName("answers")]
+        public List<Answer> Answers { get; set; } = [];
 
 
     }

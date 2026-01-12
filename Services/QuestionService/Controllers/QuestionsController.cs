@@ -84,7 +84,9 @@ namespace QuestionService.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Question>> GetQuestion(string id)
         {
-            var question = await db.Questions.Include(x=>x.Answer).FirstOrDefaultAsync(x=>x.Id==id);
+            var question = await db.Questions
+       .Include(x => x.Answers)
+       .FirstOrDefaultAsync(x => x.Id == id);
 
             if (question is null) return NotFound();
 
@@ -186,7 +188,7 @@ namespace QuestionService.Controllers
                 UserDisplayName = User.FindFirstValue("name") ?? ""
             };
 
-            question.Answer.Add(answer);
+            question.Answers.Add(answer);
             question.AnswerCount++;
 
             await db.SaveChangesAsync();
@@ -210,9 +212,10 @@ namespace QuestionService.Controllers
             {
                 return Forbid();
             }
-            answer.Content = dto.Content;
 
-            answer.UpdatedAt = DateTime.UtcNow;
+            answer.Content = dto.Content;
+            answer.UpdatedAt = DateTime.UtcNow; // ✅ EKSİK OLAN SATIR
+            
 
             await db.SaveChangesAsync();
 
@@ -255,7 +258,7 @@ namespace QuestionService.Controllers
         [HttpPost("{questionId}/answers/{answerId}/accept")]
         public async Task<IActionResult> AcceptAnswer(string questionId, string answerId)
         {
-            var question = await db.Questions.Include(x => x.Answer).FirstOrDefaultAsync(x => x.Id == questionId);
+            var question = await db.Questions.Include(x => x.Answers).FirstOrDefaultAsync(x => x.Id == questionId);
 
             if (question is null) return NotFound();
 
@@ -265,7 +268,7 @@ namespace QuestionService.Controllers
             {
                 return Forbid();
             }
-            var answer = question.Answer.FirstOrDefault(x => x.Id == answerId);
+            var answer = question.Answers.FirstOrDefault(x => x.Id == answerId);
 
             if (answer is null) return NotFound();
 
