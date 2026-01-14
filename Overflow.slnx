@@ -14,6 +14,17 @@
     <Project Path="Services/QuestionService/QuestionService.csproj" />
     <Project Path="Services/SearchService/SearchService.csproj" Id="2ba545ab-e8d0-4761-ac98-a64c05290e61" />
   </Folder>
+  <Folder Name="/webapp/">
+    <File Path="webapp/.gitignore" />
+    <File Path="webapp/eslint.config.mjs" />
+    <File Path="webapp/next-env.d.ts" />
+    <File Path="webapp/next.config.ts" />
+    <File Path="webapp/package-lock.json" />
+    <File Path="webapp/package.json" />
+    <File Path="webapp/postcss.config.mjs" />
+    <File Path="webapp/README.md" />
+    <File Path="webapp/tsconfig.json" />
+  </Folder>
   <Project Path="Overflow.AppHost/Overflow.AppHost.csproj" />
   <Project Path="Overflow.ServiceDefaults/Overflow.ServiceDefaults.csproj" />
 </Solution>

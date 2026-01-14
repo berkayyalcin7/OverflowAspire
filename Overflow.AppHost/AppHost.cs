@@ -10,12 +10,13 @@ var compose = builder.AddDockerComposeEnvironment("production")
 
 var keycloak = builder.AddKeycloak("keycloak", 6001)
     .WithDataVolume("keycloak-data")
+    // DOCKER COMPOSE İLE REALM IMPORT ÇALIŞIYOR.
     .WithRealmImport("../infra/realms")
     .WithEnvironment("KC_HTTP_ENABLED", "true")
     .WithEnvironment("KC_HOSTNAME_STRICT", "false")
-    .WithEndpoint(6001, 8080, "keycloak", isExternal: true);
-    //.WithEnvironment("VIRTUAL_HOST", "id.overflow.local")
-    //.WithEnvironment("VIRTUAL_PORT", "8080"); ;
+    //.WithEndpoint(6001, 8080, "keycloak", isExternal: true)
+    .WithEnvironment("VIRTUAL_HOST", "id.overflow.local")
+    .WithEnvironment("VIRTUAL_PORT", "8080");
 
 // LOCAL PC ' DE POSTRGE OLDUĞU İÇİN PORT'U 5434 OLARAK DEĞİŞTİRDİK.
 var postgres = builder.AddPostgres("postgres", port: 5434)
@@ -99,10 +100,11 @@ var yarp = builder.AddYarp("gateway")
      .WithEnvironment("VIRTUAL_PORT","8001");
 
 
-var webapp = builder.AddNodeApp("webapp", "../webapp", "dev")
-    .WithReference(keycloak)
-    .WithHttpEndpoint(env: "PORT", port: 3000);
+var webapp = builder.AddJavaScriptApp("webapp", "../webapp", "dev")
 
+    .WithReference(keycloak)
+
+    .WithHttpEndpoint(env: "PORT", port: 3000);
 
 if (!builder.Environment.IsDevelopment())
 {
