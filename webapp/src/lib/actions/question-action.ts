@@ -1,34 +1,30 @@
 'use server'
 
+import { fetchClient } from "../fetchClient";
 import { Question } from "../types";
 
-export async function getQuestions(tag?: string) : Promise<Question[]> {
-    let url = 'http://localhost:8001/api/questions';
+export async function getQuestions(tag?: string) {
+    let url = '/api/questions';
 
     if(tag) {
         url += `?tag=${tag}`;
     }
 
-    const response = await fetch(url);
+    // const response = await fetch(url);
 
-    if(!response.ok)
-    {
-        throw new Error('Failed to fetch questions');
-    }
+    // if(!response.ok)
+    // {
+    //     throw new Error('Failed to fetch questions');
+    // }
 
-    return response.json();
+    // return response.json();
+
+    return fetchClient<Question[]>(url, 'GET');
 }
 
-export async function getQuestionById(id: string) : Promise<Question> {
+export async function getQuestionById(id: string) {
     
-    const url = `http://localhost:8001/api/questions/${id}`;
+    const url = `/api/questions/${id}`;
 
-    const response = await fetch(url);
-
-    if(!response.ok)
-    {
-        throw new Error('Failed to fetch questions');
-    }
-
-    return response.json();
+    return fetchClient<Question>(url, 'GET');
 }

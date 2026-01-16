@@ -10,7 +10,9 @@ type Params = Promise<{id: string}>
 export default async function QuestionDetailedPage(props: {params: Params}){
     const {id} = await props.params;
 
-    const question = await getQuestionById(id);
+    const {data : question , error} = await getQuestionById(id);
+
+    if(error){ throw error;}
 
     if(!question) {
         return notFound();
