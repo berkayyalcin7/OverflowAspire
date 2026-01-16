@@ -14,7 +14,7 @@ export default function TopNav(){
                         <AcademicCapIcon className="size-10 text-secondary" />
                         <h3 className="text-xl font-semibold uppercase">Overflow</h3>
                     </Link>
-                    <nav className='flex gap-3 my-2 text-md text-neutral-300'>
+                    <nav className='flex gap-3 my-2 text-md text-neutral-600 dark:text-neutral-300 '>
                         <Link href="/">About</Link>
                         <Link href="/">Products</Link>
                         <Link href="/">Contact</Link>

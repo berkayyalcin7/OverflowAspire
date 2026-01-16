@@ -16,6 +16,7 @@ export default async function QuestionsPage({searchParams}:{searchParams?:Promis
                 {questions.map(question=>(
                     <div key={question.id} className="py-4 not-last:border-b w-full flex">
                               <QuestionCard key={question.id} question={question} />
+                              
                     </div>
               
                 ))}

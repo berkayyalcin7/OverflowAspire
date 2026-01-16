@@ -4,6 +4,7 @@ import { Question } from "@/lib/types";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import { Avatar, Chip, Link } from "@heroui/react";
 import {clsx} from "clsx";
+import { formatDate } from "@/lib/utils/date";
 
 type Props = {
     question:Question;
@@ -70,7 +71,7 @@ export default function QuestionCard({question}:Props) {
                         <Link href={`/profiles/${question.askerId}`} className='text-secondary hover:underline'>
                             {question.askerDisplayName}
                         </Link>
-                        <span className='text-neutral-500 dark:text-neutral-400'>asked {question.createdAt}</span>
+                        <span className='text-neutral-500 dark:text-neutral-400'>asked {formatDate(question.createdAt)}</span>
                     </div>
                 </div>
             </div>

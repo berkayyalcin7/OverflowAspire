@@ -19,7 +19,7 @@ export default function QuestionsHeader({tag,total}:Props) {
 
     return (
         <div className='flex flex-col w-full border-b gap-4 pb-4'>
-            <div className='flex justify-between px-6'>
+            <div className='flex justify-between items-center px-6'>
                 <div className='text-3xl font-semibold'>
                     {tag ? `[${tag}]` : 'Newest Questions'}
                 </div>
@@ -28,7 +28,9 @@ export default function QuestionsHeader({tag,total}:Props) {
                 </Button>
             </div>
             <div className='flex justify-between px-6 items-center'>
-                <div> {total} {total === 1 ? 'Question' : 'Questions'}</div>
+                <div className='text-sm text-foreground-500'>
+                    {total} {total === 1 ? 'question' : 'questions'}
+                </div>
                 <div className='flex items-center'>
                     <Tabs>
                         {tabs.map((tab)=>(
