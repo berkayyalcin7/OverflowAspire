@@ -1,5 +1,4 @@
 import { addToast } from '@heroui/react';
-import React from 'react'
 
 export default function errorToast(error: {message: string, status?: number}) {
     return addToast({

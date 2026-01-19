@@ -28,3 +28,9 @@ export async function getQuestionById(id: string) {
 
     return fetchClient<Question>(url, 'GET');
 }
+
+export async function searchQuestions(query: string) {
+    // Query parametresini encode ederek özel karakterlerde isteklerin bozulmamasını sağla
+    const encodedQuery = encodeURIComponent(query);
+    return fetchClient<Question[]>(`/search?query=${encodedQuery}`, 'GET');
+}
