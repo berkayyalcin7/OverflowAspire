@@ -91,6 +91,7 @@ var yarp = builder.AddYarp("gateway")
         yarpBuilder.AddRoute("/api/questions/{**catch-all}", questionService);
         yarpBuilder.AddRoute("/api/tags/{**catch-all}", questionService);
         yarpBuilder.AddRoute("search/{**catch-all}", searchService);
+        yarpBuilder.AddRoute("test/{**catch-all}", questionService);
     })
      .WithHostPort(8001)
      .WithEnvironment("ASPNETCORE_URLS", "http://*:8001")  // ✅ Format düzeltildi
