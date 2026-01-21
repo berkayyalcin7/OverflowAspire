@@ -1,5 +1,6 @@
 'use server';
 
+import { auth } from "@/auth";
 import { notFound } from "next/navigation";
 
 
@@ -14,9 +15,13 @@ export async function fetchClient<T>(
         if(!apiUrl)
             throw new Error('API_URL is not set');
 
+        const session = await auth();
+
         const headers:HeadersInit = {
             'Content-Type': 'application/json',
-            ...(rest.headers || {})
+            ...(rest.headers || {}),
+            // Access token is added to the headers for authentication.
+            ...(session?.accessToken ? {Authorization: `Bearer ${session.accessToken}`} : {})
         };
 
         const response = await fetch(`${apiUrl}${url}`,{
@@ -42,15 +47,28 @@ export async function fetchClient<T>(
 
             let message = '';
 
-            if(typeof parsed === 'string'){
-                message = parsed;
+            if(response.status === 401){
+                const authHeader  = response.headers.get('WWW-Authenticate');
+                if(authHeader?.includes('error_description')){
+                    const match = authHeader.match(/error_description="(.+?)"/);
+                    if(match){
+                        message=match[1];
+                    }else{
+                        message = 'You must be logged in to do that.';
+                    }
+                }
             }
-            else if (parsed?.message){
-                message = parsed.message;
-            }
-            if(!message){
-                message = getFallbackMessage(response.status);
 
+            if(!message){
+                if(typeof parsed === 'string'){
+                    message = parsed;
+                }
+                else if (parsed?.message){
+                    message = parsed.message;
+                }
+                else{
+                    message = getFallbackMessage(response.status);
+                }
             }
 
             return {data:null,error:{message,status:response.status}};
@@ -67,8 +85,6 @@ function getFallbackMessage(status: number): string {
     switch(status){
         case 400:
             return 'Bad Request. Please check your request and try again.';
-        case 401:
-            return 'Unauthorized. Please check your credentials and try again.';
         case 403:
             return 'Forbidden. You are not authorized to access this resource.';
         case 404:

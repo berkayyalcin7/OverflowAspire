@@ -16,6 +16,7 @@ namespace Common
                 .AddAuthentication()
                 .AddKeycloakJwtBearer(serviceName: "keycloak", realm: "overflow", options =>
                 {
+
                     options.RequireHttpsMetadata = false;
                     options.Audience = "overflow";
                     // Bunu eklemediğimizde Invalid issuer hatası alıyoruz. 
@@ -26,7 +27,8 @@ namespace Common
                             "http://keycloak/realms/overflow",
                             "http://localhost:6001/realms/overflow",
                             "http://id.overflow.local/realms/overflow"
-                        ]
+                        ],
+                        ClockSkew=TimeSpan.Zero,
                     };
                 });
 

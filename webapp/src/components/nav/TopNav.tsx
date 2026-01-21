@@ -6,6 +6,7 @@ import SearchInput from "./SearchInput";
 import LoginButton from "./LoginButton";
 import { getCurrentUser } from "@/lib/actions/auth-actions";
 import UserMenu from "./UserMenu";
+import RegisterButton from "./RegisterButton";
 
 export default async function TopNav(){
 
@@ -37,7 +38,7 @@ export default async function TopNav(){
                     ) : (
                         <>  
                         <LoginButton />
-                   
+                        <RegisterButton />
                     </>
                     )}
                   

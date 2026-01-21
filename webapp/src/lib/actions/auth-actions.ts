@@ -1,3 +1,5 @@
+'use server';
+
 import { auth } from "@/auth";
 import { fetchClient } from "../fetchClient";
 
@@ -13,6 +15,17 @@ export async function getCurrentUser(){
 
         return session.user;
     
+    }
+    catch(error: unknown){
+        console.log(error);
+        return null;
+    }
+}
+
+export async function getSession(){
+    try{
+        const session = await auth();
+        return session;
     }
     catch(error: unknown){
         console.log(error);
